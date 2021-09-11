@@ -1,0 +1,46 @@
+version: '3'
+services:
+  c2b-web:
+    build:
+      context: ./docker
+      dockerfile: web.dockerfile
+    container_name: c2b-web
+    restart: always
+    depends_on:
+      - c2b-app
+    environment:
+      - 'VIRTUAL_HOST=${WEB_HOST}'
+      - 'VIRTUAL_NETWORK=${PROXY_HOST}'
+      - VIRTUAL_PORT=80
+      - 'LETSENCRYPT_HOST=${WEB_HOST}'
+      - 'LETSENCRYPT_EMAIL=${LE_EMAIL}'
+      - APP_NAME=c2b-app
+      - APP_ROOT=/code/public
+    volumes:
+      - 'code-volume:${CODE_DESTINATION_PATH}'
+    networks:
+      - c2b-net
+      - proxy-net
+  c2b-app:
+    build:
+      context: ./docker
+      dockerfile: app.dockerfile
+    container_name: c2b-app
+    restart: always
+    volumes:
+      - 'code-volume:${CODE_DESTINATION_PATH}'
+    networks:
+      - c2b-net
+      - proxy-net
+volumes:
+  code-volume:
+    driver: 'lebokus/bindfs:latest'
+    driver_opts:
+      sourcePath: '$PWD/${CODE_APP_PATH}'
+      map: '${UID}/33:@${UID}/@33'
+networks:
+  c2b-net:
+    driver: bridge
+  proxy-net:
+    external:
+      name: home-server_proxy-tier
